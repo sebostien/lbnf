@@ -129,17 +129,24 @@ impl Arbitrary for Ident {
 
 proptest! {
     #[test]
-    fn test_parse_grammar(node : Grammar) {
-        let formatted = node.to_string();
-        println!("\n{}\n\n", formatted);
-        let parsed_node = crate::parse(&formatted);
-        let expected = Ok(node.clone());
+    fn test_parse_grammar(source : Grammar) {
+        let regular = format!("{}", source);
+        let parsed_node = crate::parse(&regular);
         prop_assert_eq!(
-            &parsed_node, &expected,
-            "Expected:\n{:#?}\nto equal:\n{:#?}\n\nFormatted grammar:\n{}",
-            parsed_node,
-            &expected,
-            node
+            Ok(&source),
+            parsed_node.as_ref(),
+            "\n---- Formatted grammar ----\n{}",
+            regular
         );
+
+        let pretty = format!("{:#}", source);
+        let parsed_node = crate::parse(&pretty);
+        prop_assert_eq!(
+            Ok(&source),
+            parsed_node.as_ref(),
+            "\n---- Formatted grammar (with # flag) ----\n{}",
+            pretty
+        );
+
     }
 }

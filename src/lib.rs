@@ -10,13 +10,14 @@
 
 pub mod grammar;
 
-mod pretty_print;
+mod display;
+
 #[cfg(test)]
 mod proptests;
 
-use lalrpop_util::{lexer::Token, ParseError};
-
 use crate::grammar::Grammar;
+
+use lalrpop_util::{lexer::Token, ParseError};
 
 #[macro_use]
 extern crate lalrpop_util;

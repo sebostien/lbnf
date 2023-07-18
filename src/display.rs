@@ -14,7 +14,7 @@ fn join_slice<T: std::fmt::Display>(v: &[T], sep: &str) -> String {
 impl std::fmt::Display for Grammar {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for def in &self.definitions {
-            writeln!(f, "{def}")?;
+            def.fmt(f)?;
         }
 
         Ok(())
@@ -25,18 +25,24 @@ impl std::fmt::Display for Def {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Rule(ident, cat, items) => {
-                write!(f, "{ident}. {cat} ::= {} ;", join_slice(items, " "))
+                write!(f, "{ident}. {cat} ::= {} ;", join_slice(items, " "))?;
             }
-            Self::Macro(ident, exp) => write!(f, "{ident} {exp} ;"),
+            Self::Macro(ident, exp) => write!(f, "{ident} {exp} ;")?,
         }
+
+        if f.alternate() {
+            writeln!(f)?;
+        }
+
+        Ok(())
     }
 }
 
 impl std::fmt::Display for Item {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Terminal(s) => write!(f, "\"{}\"", escape_quotes(s)),
-            Self::NTerminal(cat) => write!(f, "{cat}"),
+        match *self {
+            Self::Terminal(ref s) => write!(f, "\"{}\"", escape_quotes(s)),
+            Self::NTerminal(ref cat) => cat.fmt(f),
         }
     }
 }
@@ -45,7 +51,7 @@ impl std::fmt::Display for Cat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ListCat(cat) => write!(f, "[{cat}]"),
-            Self::IdCat(ident) => write!(f, "{ident}"),
+            Self::IdCat(ident) => ident.fmt(f),
         }
     }
 }
@@ -53,23 +59,23 @@ impl std::fmt::Display for Cat {
 impl std::fmt::Display for Label {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Id(id) => write!(f, "{id}"),
-            Self::Wild => write!(f, "_"),
-            Self::ListE => write!(f, "[]"),
-            Self::ListCons => write!(f, "(:)"),
-            Self::ListOne => write!(f, "(:[])"),
+            Self::Id(id) => id.fmt(f),
+            Self::Wild => f.write_str("_"),
+            Self::ListE => f.write_str("[]"),
+            Self::ListCons => f.write_str("(:)"),
+            Self::ListOne => f.write_str("(:[])"),
         }
     }
 }
 
 impl std::fmt::Display for Ident {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        self.0.fmt(f)
     }
 }
 
 fn format_double(d: f64) -> String {
-    let d = format!("{d}");
+    let d = d.to_string();
     if d.contains(|c| c == '.') {
         d
     } else {
@@ -79,18 +85,18 @@ fn format_double(d: f64) -> String {
 
 impl std::fmt::Display for Exp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Cons(e1, e2) => write!(f, "({e1} : {e2})"),
-            Self::App(ident, params) => write!(f, "{ident}({})", join_slice(params, ", ")),
-            Self::Var(ident) => write!(f, "{ident}"),
-            Self::LitInt(i) => write!(f, "{i}"),
+        match *self {
+            Self::Cons(ref e1, ref e2) => write!(f, "({e1} : {e2})"),
+            Self::App(ref ident, ref params) => write!(f, "{ident}({})", join_slice(params, ", ")),
+            Self::Var(ref ident) => ident.fmt(f),
+            Self::LitInt(i) => i.fmt(f),
             Self::LitChar(c) => write!(f, "'{c}'"),
-            Self::LitString(s) => write!(f, r#""{}""#, escape_quotes(s)),
-            Self::LitDouble(d) => write!(f, "{}", format_double(*d)),
-            Self::List(l) => write!(f, "[{}]", join_slice(l, ", ")),
-            Self::Or(a, b) => write!(f, "(({a}) | ({b}))"),
-            Self::Many1(a) => write!(f, "(({a})+)"),
-            Self::Many0(a) => write!(f, "(({a})*)"),
+            Self::LitString(ref s) => write!(f, r#""{}""#, escape_quotes(s)),
+            Self::LitDouble(d) => format_double(d).fmt(f),
+            Self::List(ref l) => write!(f, "[{}]", join_slice(l, ", ")),
+            Self::Or(ref a, ref b) => write!(f, "(({a}) | ({b}))"),
+            Self::Many1(ref a) => write!(f, "(({a})+)"),
+            Self::Many0(ref a) => write!(f, "(({a})*)"),
         }
     }
 }
