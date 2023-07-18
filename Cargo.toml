@@ -1,0 +1,23 @@
+[package]
+name = "lbnf"
+version = "0.1.0"
+edition = "2021"
+authors = ["sebostien"]
+
+repository = "https://github.com/sebostien/lbnf"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
+
+description = "A crate for parsing LBNF grammar"
+keywords = ["lbnf", "bnf"]
+categories = ["parser-implementations"]
+
+build = "src/build.rs"
+
+[dependencies]
+proptest = "1.2.0"
+rand = "0.8.5"
+lalrpop-util = { version = "0.20.0", features = ["lexer"] }
+
+[build-dependencies]
+lalrpop = "0.20.0"

@@ -1,0 +1,98 @@
+use std::str::FromStr;
+use crate::grammar::*;
+
+grammar;
+
+match {
+    r"\s*" => { }, // Skip whitespace
+    r"--[^\n\r]*[\n\r]" => { }, // Skip `-- comments`
+    r"[{]-[^-]*-+(?:[^}-][^-]*-+)*[}]" => { },  // Skip `{- comments -}`
+    r"-?[0-9]+" => TokInt,
+    r"-?([0-9]+[.]([0-9]*)?|[.][0-9]+)" => TokDouble,
+    r#""(:?(:?\\")|[^"\n\r])*""# => TokString,
+    r"'[[:ascii:]]'" => TokChar,
+    r"[a-zA-Z][a-zA-Z0-9_]*" => TokIdent,
+    "_"   => Wild,
+    "*"   => Star,
+    "+"   => Plus,
+    "|"   => Or,
+    "."   => Dot,
+    "::=" => Assign,
+    ";"   => Semi,
+    ":"   => Colon,
+    "["   => BrackO,
+    "]"   => BrackC,
+    "("   => ParenO,
+    ")"   => ParenC,
+    ","   => Comma,
+}
+
+pub Grammar: Grammar = {
+    <definitions:(<Def>)*> => Grammar {<>}
+};
+
+Def: Def = {
+  <Label> Dot <Cat> Assign <(<Item>)*> Semi => Def::Rule(<>),
+  <Ident> <Exp> Semi => Def::Macro(<>),
+};
+
+Cat: Cat = {
+  BrackO <Cat> BrackC => Cat::ListCat(Box::new(<>)),
+  <Ident>       => Cat::IdCat(<>),  
+};
+
+Item: Item = {
+  <String> => Item::Terminal(<>),
+  <Cat>    => Item::NTerminal(<>),
+};
+
+Exp: Exp = {
+  <Exp1> => <>,
+};
+
+Exp1: Exp = {
+  <a:Exp2> Colon <b:Exp1> => Exp::Cons(Box::new(a), Box::new(b)),
+  <a:Exp2> Or    <b:Exp1> => Exp::Or(Box::new(a), Box::new(b)),
+  <Exp2> => <>,
+};
+
+Exp2 : Exp = {
+  <Ident> ParenO <CommaSep<Exp>> ParenC => Exp::App(<>),
+  <Exp2> Star   => Exp::Many0(Box::new(<>)),
+  <Exp2> Plus   => Exp::Many1(Box::new(<>)),
+  <Ident>       => Exp::Var(<>),
+  <Int>         => Exp::LitInt(<>),
+  <Double>      => Exp::LitDouble(<>),
+  <Char>        => Exp::LitChar(<>),
+  <String>      => Exp::LitString(<>),
+  <Exp3>        => <>,
+};
+
+Exp3: Exp = {
+  BrackO <CommaSep<Exp>> BrackC => Exp::List(<>),
+  ParenO <Exp> ParenC => <>,
+}
+
+Label: Label = {
+  Wild                              => Label::Wild,
+  BrackO BrackC                     => Label::ListE,
+  ParenO Colon ParenC               => Label::ListCons,
+  ParenO Colon BrackO BrackC ParenC => Label::ListOne,
+  <Ident>                           => Label::Id(<>),
+};
+ 
+CommaSep<T>: Vec<T> = {
+    <mut v:(<T> Comma)*> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            v.push(e);
+            v
+        }
+    }
+};
+
+Int: i64 = <TokInt> => i64::from_str(<>).unwrap();
+Double: f64    = <TokDouble> => f64::from_str(<>).unwrap();
+String: String = <s:TokString> => s[1..s.len() - 1].replace("\\\"", "\"");
+Char: char     = <s:TokChar> => s.chars().skip(1).next().unwrap() ;
+Ident: Ident   = <s:TokIdent> => Ident(s.to_string());
