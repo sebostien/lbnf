@@ -4,10 +4,12 @@
     clippy::pedantic,
     clippy::nursery,
     clippy::cargo,
-    clippy::perf
+    clippy::perf,
+    missing_docs
 )]
 #![allow(clippy::multiple_crate_versions)]
 
+/// The structure of LBNF grammar.
 pub mod grammar;
 
 mod display;

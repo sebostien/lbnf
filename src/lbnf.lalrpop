@@ -11,11 +11,8 @@ match {
     r"-?([0-9]+[.]([0-9]*)?|[.][0-9]+)" => TokDouble,
     r#""(:?(:?\\")|[^"\n\r])*""# => TokString,
     r"'[[:ascii:]]'" => TokChar,
-    r"[a-zA-Z][a-zA-Z0-9_]*" => TokIdent,
+    r"[a-zA-Z_][a-zA-Z0-9_]*" => TokIdent,
     "_"   => Wild,
-    "*"   => Star,
-    "+"   => Plus,
-    "|"   => Or,
     "."   => Dot,
     "::=" => Assign,
     ";"   => Semi,
@@ -33,7 +30,7 @@ pub Grammar: Grammar = {
 
 Def: Def = {
   <Label> Dot <Cat> Assign <(<Item>)*> Semi => Def::Rule(<>),
-  <Ident> <Exp> Semi => Def::Macro(<>),
+  <Ident> <(<Exp>)*> Semi => Def::Macro(<>),
 };
 
 Cat: Cat = {
@@ -47,31 +44,13 @@ Item: Item = {
 };
 
 Exp: Exp = {
-  <Exp1> => <>,
-};
-
-Exp1: Exp = {
-  <a:Exp2> Colon <b:Exp1> => Exp::Cons(Box::new(a), Box::new(b)),
-  <a:Exp2> Or    <b:Exp1> => Exp::Or(Box::new(a), Box::new(b)),
-  <Exp2> => <>,
-};
-
-Exp2 : Exp = {
-  <Ident> ParenO <CommaSep<Exp>> ParenC => Exp::App(<>),
-  <Exp2> Star   => Exp::Many0(Box::new(<>)),
-  <Exp2> Plus   => Exp::Many1(Box::new(<>)),
   <Ident>       => Exp::Var(<>),
   <Int>         => Exp::LitInt(<>),
   <Double>      => Exp::LitDouble(<>),
   <Char>        => Exp::LitChar(<>),
   <String>      => Exp::LitString(<>),
-  <Exp3>        => <>,
-};
-
-Exp3: Exp = {
-  BrackO <CommaSep<Exp>> BrackC => Exp::List(<>),
   ParenO <Exp> ParenC => <>,
-}
+};
 
 Label: Label = {
   Wild                              => Label::Wild,

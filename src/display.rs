@@ -27,7 +27,7 @@ impl std::fmt::Display for Def {
             Self::Rule(ident, cat, items) => {
                 write!(f, "{ident}. {cat} ::= {} ;", join_slice(items, " "))?;
             }
-            Self::Macro(ident, exp) => write!(f, "{ident} {exp} ;")?,
+            Self::Macro(ident, exp) => write!(f, "{ident} {} ;", join_slice(exp, " "))?,
         }
 
         if f.alternate() {
@@ -86,17 +86,11 @@ fn format_double(d: f64) -> String {
 impl std::fmt::Display for Exp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match *self {
-            Self::Cons(ref e1, ref e2) => write!(f, "({e1} : {e2})"),
-            Self::App(ref ident, ref params) => write!(f, "{ident}({})", join_slice(params, ", ")),
             Self::Var(ref ident) => ident.fmt(f),
             Self::LitInt(i) => i.fmt(f),
             Self::LitChar(c) => write!(f, "'{c}'"),
             Self::LitString(ref s) => write!(f, r#""{}""#, escape_quotes(s)),
             Self::LitDouble(d) => format_double(d).fmt(f),
-            Self::List(ref l) => write!(f, "[{}]", join_slice(l, ", ")),
-            Self::Or(ref a, ref b) => write!(f, "(({a}) | ({b}))"),
-            Self::Many1(ref a) => write!(f, "(({a})+)"),
-            Self::Many0(ref a) => write!(f, "(({a})*)"),
         }
     }
 }

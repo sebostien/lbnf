@@ -1,7 +1,6 @@
 use crate::grammar::{Cat, Def, Exp, Grammar, Ident, Item, Label};
 use proptest::prelude::{
-    any, any_with, prop, prop_assert_eq, prop_oneof, proptest, Arbitrary, BoxedStrategy, Just,
-    Strategy,
+    any, any_with, prop_assert_eq, prop_oneof, proptest, Arbitrary, BoxedStrategy, Just, Strategy,
 };
 
 impl Arbitrary for Grammar {
@@ -25,7 +24,7 @@ impl Arbitrary for Def {
         prop_oneof![
             (any::<Label>(), any::<Cat>(), any::<Vec<Item>>())
                 .prop_map(|(a, b, c)| Self::Rule(a, b, c)),
-            (any::<Ident>(), any::<Exp>()).prop_map(|(a, b)| Self::Macro(a, b)),
+            (any::<Ident>(), any::<Vec<Exp>>()).prop_map(|(a, b)| Self::Macro(a, b)),
         ]
         .boxed()
     }
@@ -72,31 +71,14 @@ impl Arbitrary for Exp {
     type Strategy = BoxedStrategy<Self>;
 
     fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
-        // Terminals:
-        //   Var, LitInt, LitDouble, LitChar, LitString
-        let leaf = prop_oneof![
+        prop_oneof![
             any::<Ident>().prop_map(Self::Var),
             any::<i64>().prop_map(Self::LitInt),
             any::<f64>().prop_map(Self::LitDouble),
             any_with::<String>(r#"[.--"]"#.into())
                 .prop_map(|s| Self::LitChar(s.chars().next().unwrap())),
             any_with::<String>(r#"[.--"]*"#.into()).prop_map(Self::LitString),
-        ];
-
-        // Non-Terminals:
-        //  Cons, Or, App, List, Many1, Many0
-        leaf.prop_recursive(8, 256, 8, |inner| {
-            prop_oneof![
-                (inner.clone(), inner.clone())
-                    .prop_map(|(a, b)| Exp::Cons(Box::new(a), Box::new(b))),
-                (inner.clone(), inner.clone()).prop_map(|(a, b)| Exp::Or(Box::new(a), Box::new(b))),
-                (any::<Ident>(), prop::collection::vec(inner.clone(), 0..10))
-                    .prop_map(|(ident, exps)| Exp::App(ident, exps)),
-                prop::collection::vec(inner.clone(), 0..10).prop_map(Exp::List),
-                inner.clone().prop_map(|e| Exp::Many1(Box::new(e))),
-                inner.prop_map(|e| Exp::Many0(Box::new(e))),
-            ]
-        })
+        ]
         .boxed()
     }
 }
