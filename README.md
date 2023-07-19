@@ -2,7 +2,6 @@
 
 A crate for parsing LBNF.
 
-A crate for parsing LBNF.
 This crate is solely responsible for parsing LBNF.
 Several components, such as lexer, parser, and AST generation, are
 missing and needed to generate complete parsers for context-free grammars.
